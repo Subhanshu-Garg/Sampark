@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {Card, Icon, ButtonGroup, Text} from '@rneui/themed';
-import {COLOR_PALETTES} from '../utils/colors';
+import {COLOR_PALETTES} from '../utils/constants/colors';
 const ContactCardDetails = ({
   name,
   contactNumber,

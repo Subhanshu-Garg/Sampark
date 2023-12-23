@@ -1,4 +1,5 @@
-import React, {useState, useEffect} from 'react';
+import moment from 'moment';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -9,10 +10,18 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import ContactCardDetails from '../components/ContactCardDetails';
-import {COLOR_PALETTES} from '../utils/colors';
+import {COLOR_PALETTES} from '../utils/constants/colors';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import InputComponent from '../components/InputComponent';
 import {Icon} from '@rneui/themed';
+import { useDispatch, useSelector } from 'react-redux';
+import { getSuchiMember } from '../redux/SuchiMembers/suchiMemberSlice.js';
+import { SLICES, SLICES_STATUS } from '../utils/constants/slices.constants';
+import useAsyncThunkStatus from '../utils/useAsyncThunkStatus';
+import Loader from '../components/Loader';
+import UpdateCard from '../components/UpdateCard';
+import { getUpdates } from '../redux/Updates/updatesSlice';
+import { ActivityIndicator } from 'react-native';
 
 const h = Dimensions.get('screen').height;
 const w = Dimensions.get('screen').width;
@@ -20,12 +29,61 @@ const w = Dimensions.get('screen').width;
 export default function ContactDetails({route}) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const dispatch = useDispatch();
+  const scrollViewRef = useRef();
+  const { token, user } = useSelector(state => state.auth)
+  const { status } = useAsyncThunkStatus(SLICES.SUCHI_MEMBER)
+  const { status: updatesStatus } = useAsyncThunkStatus(SLICES.UPDATES)
+  const { suchiMember = {} } = useSelector(state => state[SLICES.SUCHI_MEMBER]);
+  const { updates = [] } = useSelector(state => state[SLICES.UPDATES])
 
-  const handleClose = newState => {
-    setIsExpanded(newState);
-    setIsEditing(newState);
-  };
+  useEffect(() => {
+    dispatch(getSuchiMember({
+      headers: {
+        "Authorization": token
+      },
+      params: {
+        "id": route.params.id
+      }
+    }))
+  }, [token])
 
+  useEffect(() => {
+    if(status === SLICES_STATUS.SUCCEEDED) {
+      dispatch(getUpdates({
+        headers: {
+          "Authorization": token
+        },
+        query: {
+          createdFor: suchiMember._id
+        }
+      }))
+    }
+  }, [token, suchiMember])
+
+  
+  
+  const {
+    _id: suchiMemberId,
+    name = '',
+    mobileNumber = '',
+    suchiType = '',
+    currentStatus = '',
+    samparkSutra: {
+      name: samparkSutra = '',
+      mobileNumber: samparkSutraContactDetails = '',
+    } = [],
+    assignedTo: {
+      name: assignedTo
+    } = {},
+    shreni = ''
+  } = suchiMember;
+
+  if(status === SLICES_STATUS.LOADING || updatesStatus === SLICES_STATUS.LOADING) {
+    return (
+      <Loader />
+    )
+  }
   return (
     <TouchableWithoutFeedback
       onPressOut={() => {
@@ -55,35 +113,50 @@ export default function ContactDetails({route}) {
             )}
           </TouchableOpacity>
         )}
-
-        <View style={style.container}>
-          {isExpanded && (
-            <TouchableWithoutFeedback onPressOut={() => null}>
-              {isExpanded && (
-                <View style={style.contactCardContainer}>
-                  <ContactCardDetails
-                    name={route.params.name}
-                    contactNumber="+91-8800001010"
-                    shreni="Engineer"
-                    samparkSutra="Rahul Chaurasia"
-                    samparkSutraContactDetails="+91-700000100"
-                    suchi="International"
-                    currentStatus="active"
-                    hasWhatsApp={true}
-                    assignedTo="Ramesh Srivastav"
-                    onEditing={setIsEditing}
-                  />
-                </View>
-              )}
-            </TouchableWithoutFeedback>
-          )}
-        </View>
-
+        {isExpanded && (
+          <TouchableWithoutFeedback onPressOut={() => null}>
+            {isExpanded && (
+              <View style={style.contactCardContainer}>
+                <ContactCardDetails
+                  name={name}
+                  contactNumber={mobileNumber}
+                  shreni={shreni}
+                  samparkSutra={samparkSutra}
+                  samparkSutraContactDetails={samparkSutraContactDetails}
+                  suchi={suchiType}
+                  currentStatus={currentStatus}
+                  hasWhatsApp={true}
+                  assignedTo={assignedTo}
+                  onEditing={setIsEditing}
+                />
+              </View>
+            )}
+          </TouchableWithoutFeedback>
+        )}
+        <ScrollView 
+          style={style.updateBG}
+          contentContainerStyle={style.contentContainer}
+          ref={scrollViewRef}
+          onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: false })}
+        >
+          {updates?.map(({updateMessage = '', createdBy = {}, nextContactOn = '', createdAt = '' } = {}, index) => (
+            <UpdateCard
+              key={index}
+              updateMessage = {updateMessage}
+              createdByName = {createdBy.name}
+              createdByMobileNumber = {createdBy.mobileNumber}
+              nextContactOn = {nextContactOn}
+              createdAt = {moment(createdAt).calendar()}
+            />
+          ))}
+        </ScrollView>
+        
         {!isEditing && (
           <View style={style.inputComponent}>
             <InputComponent
               isExpanded={isExpanded}
               setIsExpanded={setIsExpanded}
+              suchiMemberId={suchiMemberId}
             />
           </View>
         )}
@@ -94,7 +167,13 @@ export default function ContactDetails({route}) {
 
 const style = StyleSheet.create({
   updateBG: {
-    backgroundColor: COLOR_PALETTES.UPDATES_SCREEN_COLOR,
+    flex: 1,
+    paddingTop: 10,
+    paddingBottom: 40,
+    marginBottom: 80
+  },
+  contentContainer: {
+    flexGrow: 1
   },
   container: {
     flex: 1,
@@ -106,7 +185,7 @@ const style = StyleSheet.create({
     right: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1,
+    zIndex: 2,
   },
   icon: {
     backgroundColor: COLOR_PALETTES.PRIMARY_COLOR,
@@ -126,5 +205,6 @@ const style = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
+    zIndex: 1
   },
 });

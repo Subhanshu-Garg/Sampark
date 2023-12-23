@@ -4,13 +4,18 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Home from '../screens/Home';
 import ContactDetails from '../screens/ContactDetails';
 import Login from '../screens/Login';
-import { NAV_TYPES } from '../utils/navTypes';
-import { COLOR_PALETTES } from '../utils/colors';
+import { NAV_TYPES } from '../utils/constants/navTypes';
+import { COLOR_PALETTES } from '../utils/constants/colors';
+import { AlertNotificationRoot } from 'react-native-alert-notification';
+import { useSelector } from 'react-redux';
+import { SLICES, SLICES_STATUS } from '../utils/constants/slices.constants';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 const Stack = createNativeStackNavigator();
 
-function AppNavigator() {
+function AppNavigator() {  
   return (
+    <AlertNotificationRoot>
       <Stack.Navigator initialRouteName={NAV_TYPES.LOGIN_SCREEN} screenOptions={{
         headerStyle: {
           backgroundColor: COLOR_PALETTES.PRIMARY_COLOR,
@@ -28,6 +33,7 @@ function AppNavigator() {
           options={({ route }) => ({ title: route.params.name })}
           />
       </Stack.Navigator>
+    </AlertNotificationRoot>
   );
 }
 

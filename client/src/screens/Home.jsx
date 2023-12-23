@@ -1,66 +1,46 @@
 /* eslint-disable prettier/prettier */
-import { ScrollView, StyleSheet, TouchableOpacity} from 'react-native';
-import React from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
+import React, { useEffect } from 'react';
 import ContactCard from '../components/ContactCard';
-
-const contacts = [
-  {
-    name: 'John Doe',
-    contactNumber: '1234567890',
-    shreni: 'Category1',
-    lastContactOn: '2023-10-13',
-    nextContactOn: '2023-10-20',
-  },
-  {
-    name: 'Jane Smith',
-    contactNumber: '0987654321',
-    shreni: 'Category2',
-    lastContactOn: '2023-10-14',
-    nextContactOn: '2023-10-21',
-  },
-  {
-    name: 'Bob Johnson',
-    contactNumber: '1122334455',
-    shreni: 'Category3',
-    lastContactOn: '2023-10-15',
-    nextContactOn: '2023-10-22',
-  },
-  {
-    name: 'Alice Williams',
-    contactNumber: '6677889900',
-    shreni: 'Category4',
-    lastContactOn: '2023-10-16',
-    nextContactOn: '2023-10-23',
-  },
-  {
-    name: 'Jane Smith',
-    contactNumber: '0987654321',
-    shreni: 'Category2',
-    lastContactOn: '2023-10-14',
-    nextContactOn: '2023-10-21',
-  },
-  {
-    name: 'Bob Johnson',
-    contactNumber: '1122334455',
-    shreni: 'Category3',
-    lastContactOn: '2023-10-15',
-    nextContactOn: '2023-10-22',
-  },
-  {
-    name: 'Alice Williams',
-    contactNumber: '6677889900',
-    shreni: 'Category4',
-    lastContactOn: '2023-10-16',
-    nextContactOn: '2023-10-23',
-  },
-];
+import useAsyncThunkStatus from '../utils/useAsyncThunkStatus.js';
+import { SLICES, SLICES_STATUS } from '../utils/constants/slices.constants.js';
+import { useDispatch, useSelector } from 'react-redux';
+import { getSuchiMembers } from '../redux/SuchiMembers/suchiMembersSlice.js';
+import { COLOR_PALETTES } from '../utils/constants/colors';
+import Loader from '../components/Loader';
+import { NAV_TYPES } from '../utils/constants/navTypes';
 
 
 function Home({ navigation }) {
+  const dispatch = useDispatch();
+  const { token } = useSelector(state => state[SLICES.AUTH])
+
+  useEffect(() => {
+    dispatch(getSuchiMembers({
+      headers: {
+        "Authorization": token
+      }
+    }))
+  }, [])
+  
+  
+  const { status = 'idle', error = null } = useAsyncThunkStatus(SLICES.SUCHI_MEMBERS)
+  const { suchiMembers = [] } = useSelector(state => state[SLICES.SUCHI_MEMBERS])
+
+  if(status === SLICES_STATUS.LOADING) {
+    return (
+      <Loader />
+    )
+  }
+
+  function handleCardPress (contact) {
+    navigation.navigate(NAV_TYPES.CONTACT_DETAILS_SCREEN, { name: contact.name, id: contact._id })
+  }
+  
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {contacts.map((contact, index) => (
-        <TouchableOpacity key={index} onPress={() => navigation.navigate('ContactDetails', { name: contact.name})}>
+      {suchiMembers.map((contact) => (
+        <TouchableOpacity key={contact._id} onPress={() => handleCardPress(contact)}>
           <ContactCard {...contact} />
         </TouchableOpacity>
       ))}

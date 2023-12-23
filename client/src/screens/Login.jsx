@@ -1,27 +1,53 @@
-/* eslint-disable prettier/prettier */
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
-import { NAV_TYPES } from '../utils/navTypes';
+import React, {useState, useEffect} from 'react';
+import {View, TextInput, Button, Text, StyleSheet, ActivityIndicator} from 'react-native';
+import {NAV_TYPES} from '../utils/constants/navTypes';
+import {useDispatch, useSelector} from 'react-redux';
+import {login} from '../redux/Users/authSlice';
+import ErrorToast from '../components/ErrorToast';
+import {
+  ALERT_TYPE,
+  AlertNotificationRoot,
+  Toast,
+} from 'react-native-alert-notification';
+import {COLOR_PALETTES} from '../utils/constants/colors';
+import useAsyncThunkStatus from '../utils/useAsyncThunkStatus';
+import {SLICES, SLICES_STATUS} from '../utils/constants/slices.constants';
+import { getSuchiMembers } from '../redux/SuchiMembers/suchiMembersSlice';
+import Spinner from 'react-native-loading-spinner-overlay';
+import { color } from '@rneui/base';
+import Loader from '../components/Loader';
 
-function Login ({ navigation }) {
+function Login({navigation}) {
   const [mobileNumber, setMobileNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const { token } = useSelector(state => state.auth);
+  const dispatch = useDispatch();
+
+  const {
+    status: authStatus,
+    error: authError
+  } = useAsyncThunkStatus(SLICES.AUTH, navigation);
 
   useEffect(() => {
-    if (mobileNumber.length !== 10) {
-      setOtpSent(false);
-      setOtp('');
+    if (authStatus === SLICES_STATUS.SUCCEEDED) {
+      navigation.replace(NAV_TYPES.HOME_SCREEN);
     }
-  }, [mobileNumber]);
-
-  function handleSendOtp() {
-    // Add your logic to send OTP here
-    setOtpSent(true);
-  }
+    if(authError === SLICES_STATUS.FAILED) {
+      navigation.replace(NAV_TYPES.LOGIN_SCREEN)
+    }
+  }, [authStatus]);
 
   function handleLogin() {
-    navigation.replace(NAV_TYPES.HOME_SCREEN);
+    dispatch(
+      login({
+        requestData: {mobileNumber, password},
+      }),
+    );
+  }
+  if (authStatus === SLICES_STATUS.LOADING) {
+    return (
+      <Loader />
+    );
   }
 
   return (
@@ -35,18 +61,18 @@ function Login ({ navigation }) {
         onChangeText={setMobileNumber}
       />
       <TextInput
-        style={[styles.input, !otpSent && styles.disabledInput]}
-        placeholder="OTP"
+        secureTextEntry={true}
+        style={[styles.input]}
+        placeholder="Password"
         keyboardType="numeric"
-        editable={otpSent}
-        value={otp}
-        onChangeText={setOtp}
+        value={password}
+        onChangeText={setPassword}
       />
       <Button
-        title={otpSent ? 'Login' : 'Send OTP'}
+        title={true ? 'Login' : 'Send OTP'}
         color="#FF9933"
-        disabled={mobileNumber.length !== 10 || (otpSent && otp.length !== 4)}
-        onPress={otpSent ? handleLogin : handleSendOtp}
+        disabled={mobileNumber.length !== 10 || password.length !== 4}
+        onPress={handleLogin}
       />
     </View>
   );
@@ -57,24 +83,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLOR_PALETTES.WHITE_COLOR,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF9933',
+    color: COLOR_PALETTES.PRIMARY_COLOR,
     textAlign: 'center',
     marginBottom: 24,
   },
   input: {
     height: 40,
-    borderColor: '#FF9933',
+    borderColor: COLOR_PALETTES.PRIMARY_COLOR,
     borderWidth: 1,
     marginBottom: 12,
     paddingLeft: 8,
-  },
-  disabledInput: {
-    borderColor: '#CCCCCC',
   },
 });
 

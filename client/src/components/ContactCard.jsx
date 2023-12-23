@@ -2,14 +2,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, ListItem } from '@rneui/themed';
-import { COLOR_PALETTES } from '../utils/colors';
+import { COLOR_PALETTES } from '../utils/constants/colors';
 
 const ContactCard = ({
   name,
-  contactNumber,
-  shreni,
-  lastContactOn,
-  nextContactOn,
+  mobileNumber,
+  shreni = 'Unknown',
+  lastContactOn = 'Unknown',
+  nextContactOn = 'Unknown',
 }) => {
   return (
     <Card containerStyle={styles.card}>
@@ -18,7 +18,7 @@ const ContactCard = ({
           <View>
             <ListItem.Title style={styles.title}>{name}</ListItem.Title>
             <ListItem.Subtitle style={styles.subtitle}>
-              +91-{contactNumber}
+              +91-{mobileNumber}
             </ListItem.Subtitle>
           </View>
           <View style={styles.rightSide}>
